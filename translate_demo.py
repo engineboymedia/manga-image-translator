@@ -9,6 +9,7 @@ import os
 from oscrypto import util as crypto_utils
 import asyncio
 import torch
+import fitz
 
 from detection import DETECTORS, dispatch as dispatch_detection, prepare as prepare_detection
 from detection.ctd_utils.textblock import visualize_textblocks
@@ -22,7 +23,7 @@ from text_rendering.text_render import count_valuable_text
 from utils import load_image, dump_image
 
 parser = argparse.ArgumentParser(description='Seamlessly translate mangas into a chosen language')
-parser.add_argument('-m', '--mode', default='demo', type=str, choices=['demo', 'batch', 'web', 'web2', 'ws'], help='Run demo in either single image demo mode (demo), web service mode (web) or batch translation mode (batch)')
+parser.add_argument('-m', '--mode', default='demo', type=str, choices=['demo', 'batch', 'pdf', 'web', 'web2', 'ws'], help='Run demo in either single image demo mode (demo), web service mode (web), pdf translation mode (pdf) or batch translation mode (batch)')
 parser.add_argument('-i', '--image', default='', type=str, help='Path to an image file if using demo mode, or path to an image folder if using batch mode')
 parser.add_argument('-o', '--image-dst', default='', type=str, help='Path to the destination folder for translated images in batch mode')
 parser.add_argument('-l', '--target-lang', default='CHS', type=str, choices=VALID_LANGUAGES, help='Destination language')
@@ -426,6 +427,73 @@ async def main(mode = 'demo'):
                     import traceback
                     traceback.print_exc()
                     pass
+
+    elif mode == 'pdf':
+        src = os.path.abspath(args.image)
+        if src[-1] == '\\' or src[-1] == '/':
+            src = src[:-1]
+        dst = src + '-translated'
+        if os.path.exists(dst) and not os.path.isdir(dst):
+            print(f'Destination `{dst}` already exists and is not a directory! Please specify another directory.')
+            return
+        print('Converting PDF to images')
+        dpi = 300
+        zoom = dpi /72
+        magnify = fitz.Matrix(zoom,zoom)
+        doc = fitz.open(src)
+        conv_src = src + '-converted'
+        #conv_src_root = replace_prefix(root, src, conv_src)
+        print('conv_src='+conv_src)
+        os.makedirs(conv_src, exist_ok= True)
+        for page in doc:
+            pix = page.get_pixmap(matrix=magnify)
+            pix.save(f"{conv_src}/converted-{page.number}.png")
+
+        print('Processing image in converted directory')
+        conv_dst = conv_src + '-translated'
+        files = []
+        for root, subdirs, files in os.walk(conv_src):
+            dst_root = replace_prefix(root, conv_src, conv_dst)
+            print('dst_root={dst_root}')
+            os.makedirs(dst_root, exist_ok = True)
+            for f in files:
+                if f.lower() == '.thumb':
+                    continue
+                filename = os.path.join(root, f)
+                dst_filename = replace_prefix(filename, src, conv_dst)
+                if os.path.exists(dst_filename):
+                    continue
+                try:
+                    img = Image.open(filename)
+                except Exception:
+                    pass
+                try:
+                    print('Processing', filename, '->', dst_filename)
+                    await infer(img, 'demo', dst_image_name = dst_filename)
+                except Exception:
+                    import traceback
+                    traceback.print_exc()
+                    pass
+        
+        print('Converting translated images into pdf')
+        conv_doc = fitz.open()
+
+        for root, subdirs, files in os.walk(conv_dst):
+            for f in files:
+                filename = os.path.join(root, f)
+                print('filename={filename}')
+                tr_img = fitz.open(filename)
+                rect = tr_img[0].rect
+                pdfbytes = tr_img.convert_to_pdf()
+                tr_img.close()
+                imgPDF = fitz.open("pdf", pdfbytes)
+                tr_page = conv_doc.new_page(width=rect.width,
+                                            height=rect.height)
+                page.show_pdf_page(rect, imgPDF, 0)
+
+        conv_doc.save("{dst}.pdf")
+                
+
 
 if __name__ == '__main__':
     try:
