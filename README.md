@@ -42,7 +42,8 @@ Sample images can be found [here](#samples)
 ## Installation
 
 ```bash
-# First, you need to have Python(>=3.8) installed on your system.
+# First, you need to have Python(>=3.8) installed on your system
+# The latest version often does not work with pytorch yet
 $ python --version
 Python 3.10.6
 
@@ -57,12 +58,12 @@ $ pip install git+https://github.com/lucasb-eyer/pydensecrf.git
 
 The models will be downloaded into _./models_ at runtime.
 
-#### If you are on windows:
-*To use cuda on windows* install the correct pytorch version as instructed on https://pytorch.org/.  
-Add `--upgrade --force-reinstall` to the pip command to overwrite the currently installed version.
-
+#### If you are on windows
 Some pip dependencies will not compile without _Microsoft C++ Build Tools_
 (See ![#114](https://github.com/zyddnys/manga-image-translator/issues/114)).
+
+*To use [cuda](https://developer.nvidia.com/cuda-downloads?target_os=Windows&target_arch=x86_64) on windows* install the correct pytorch version as instructed on https://pytorch.org/.  
+Add `--upgrade --force-reinstall` to the pip command to overwrite the currently installed version.
 
 If you have trouble installing pydensecrf with the command above you can download the pre-compiled wheels
 from <https://www.lfd.uci.edu/~gohlke/pythonlibs/#_pydensecrf> according to your python version and install it with pip.
@@ -321,6 +322,7 @@ A list of what needs to be done next, you're welcome to contribute.
    Used for detecting hard subtitles in videos, generting ass file and remove them completetly.
 6. ~~Mask refinement based using non deep learning algorithms, I am currently testing out CRF based algorithm.~~
 7. ~~Angled text region merge is not currently supported~~
+8. Add sugoi models and replace jparacrawl
 
 ## Samples
 
