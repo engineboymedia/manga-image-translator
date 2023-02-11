@@ -328,7 +328,7 @@ The following samples are from the original version, they do not represent the c
 
 |                 Original               |            Translated             |
 | :------------------------------------: | :-------------------------------: |
-| ![Original](demo/image/original1.jpg ) | ![Output](demo/image/result1.png) |
-| ![Original](demo/image/original2.jpg ) | ![Output](demo/image/result2.png) |
-| ![Original](demo/image/original3.jpg ) | ![Output](demo/image/result3.png) |
-| ![Original](demo/image/original4.jpg ) | ![Output](demo/image/result4.png) |
+| ![Original](demo/image/original1.jpg ) | ![Output](demo/image/result1.jpg) |
+| ![Original](demo/image/original2.jpg ) | ![Output](demo/image/result2.jpg) |
+| ![Original](demo/image/original3.jpg ) | ![Output](demo/image/result3.jpg) |
+| ![Original](demo/image/original4.jpg ) | ![Output](demo/image/result4.jpg) |
