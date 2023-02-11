@@ -10,6 +10,8 @@
 > [中文说明](README_CN.md) | [Change Log](CHANGELOG.md) \
 > Join us on discord <https://discord.gg/Ak8APNy4vb>
 
+
+Engineboymedia fork from the original to add ability to translate from pdfs instead of images only, original readme below with added examples in pdf's and how to use pdfs
 Some manga/images will never be translated, therefore this project is born.\
 Primarily designed for translating Japanese text, but also supports Chinese, English and Korean.\
 Supports inpainting and text rendering.\
@@ -79,6 +81,19 @@ from <https://www.lfd.uci.edu/~gohlke/pythonlibs/#_pydensecrf> according to your
 # replace <path_to_image_file> with the path to the image file.
 $ python translate_demo.py --verbose --use-cuda --translator=google -l ENG -i <path_to_image_file>
 # result can be found in `result/`.
+```
+#### PDF mode (PDF file)
+
+```bash
+# `--use-cuda` is optional, if you have a compatible NVIDIA GPU, you can use it.
+# use `--use-cuda-limited` to defer vram expensive language translations to the cpu
+# use `--inpainter=none` to disable inpainting.
+# use `--translator=<translator>` to specify a translator.
+# use `--translator=none` if you only want to use inpainting (blank bubbles)
+# use `--target-lang <language_code>` to specify a target language.
+# replace <path_to_pdf_file> with the path to the pdf file.
+$ python translate_demo.py --verbose --mode pdf --use-cuda --translator=google -l ENG -i <path_to_pdf_file>
+# result can be found in `<path_to_pdf_file>-translated`.
 ```
 
 #### Batch mode
@@ -311,9 +326,9 @@ A list of what needs to be done next, you're welcome to contribute.
 
 The following samples are from the original version, they do not represent the current main branch version.
 
-|                                             Original                                              |            Translated             |
-| :-----------------------------------------------------------------------------------------------: | :-------------------------------: |
-|        ![Original](demo/image/original1.jpg 'https://www.pixiv.net/en/artworks/85200179')         | ![Output](demo/image/result1.png) |
-| ![Original](demo/image/original2.jpg 'https://twitter.com/mmd_96yuki/status/1320122899005460481') | ![Output](demo/image/result2.png) |
-| ![Original](demo/image/original3.jpg 'https://twitter.com/_taroshin_/status/1231099378779082754') | ![Output](demo/image/result3.png) |
-|           ![Original](demo/image/original4.jpg 'https://amagi.fanbox.cc/posts/1904941')           | ![Output](demo/image/result4.png) |
+|                 Original               |            Translated             |
+| :------------------------------------: | :-------------------------------: |
+| ![Original](demo/image/original1.jpg ) | ![Output](demo/image/result1.png) |
+| ![Original](demo/image/original2.jpg ) | ![Output](demo/image/result2.png) |
+| ![Original](demo/image/original3.jpg ) | ![Output](demo/image/result3.png) |
+| ![Original](demo/image/original4.jpg ) | ![Output](demo/image/result4.png) |

@@ -30,3 +30,4 @@ ctranslate2
 PyMuPDF
 cython
 git+https://github.com/lucasb-eyer/pydensecrf.git
+natsort

@@ -21,6 +21,7 @@ from mask_refinement import dispatch as dispatch_mask_refinement
 from text_rendering import dispatch as dispatch_rendering, dispatch_eng_render
 from text_rendering.text_render import count_valuable_text
 from utils import load_image, dump_image
+from natsort import natsorted
 
 parser = argparse.ArgumentParser(description='Seamlessly translate mangas into a chosen language')
 parser.add_argument('-m', '--mode', default='demo', type=str, choices=['demo', 'batch', 'pdf', 'web', 'web2', 'ws'], help='Run demo in either single image demo mode (demo), web service mode (web), pdf translation mode (pdf) or batch translation mode (batch)')
@@ -470,6 +471,7 @@ async def main(mode = 'demo'):
                 except Exception:
                     import traceback
                     traceback.print_exc()
+                    os.remove(filename)
                     pass
         try:
             os.removedirs(conv_src)
@@ -481,6 +483,7 @@ async def main(mode = 'demo'):
         conv_doc = fitz.open()
 
         for root, subdirs, files in os.walk(conv_dst):
+            files = natsorted(files)
             for f in files:
                 filename = os.path.join(root, f)
                 tr_img = fitz.open(filename)
