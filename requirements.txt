@@ -31,3 +31,5 @@ PyMuPDF
 cython
 git+https://github.com/lucasb-eyer/pydensecrf.git
 natsort
+colorama
+pytest

@@ -80,7 +80,7 @@ from <https://www.lfd.uci.edu/~gohlke/pythonlibs/#_pydensecrf> according to your
 # use `--translator=none` if you only want to use inpainting (blank bubbles)
 # use `--target-lang <language_code>` to specify a target language.
 # replace <path_to_image_file> with the path to the image file.
-$ python translate_demo.py --verbose --use-cuda --translator=google -l ENG -i <path_to_image_file>
+$ python -m manga_translator -v --use-cuda --translator=google -l ENG -i <path_to_image_file>
 # result can be found in `result/`.
 ```
 #### PDF mode (PDF file)
@@ -103,7 +103,7 @@ $ python translate_demo.py --verbose --mode pdf --use-cuda --translator=google -
 # same options as above.
 # use `--mode batch` to enable batch translation.
 # replace <path_to_image_folder> with the path to the image folder.
-$ python translate_demo.py --verbose --mode batch --use-cuda --translator=google -l ENG -i <path_to_image_folder>
+$ python -m manga_translator -v --mode batch --use-cuda --translator=google -l ENG -i <path_to_image_folder>
 # results can be found in `<path_to_image_folder>-translated/`.
 ```
 
@@ -112,7 +112,7 @@ $ python translate_demo.py --verbose --mode batch --use-cuda --translator=google
 ```bash
 # same options as above.
 # use `--mode web` to start a web server.
-$ python translate_demo.py --verbose --mode web --use-cuda
+$ python -m manga_translator -v --mode web --use-cuda
 # the demo will be serving on http://127.0.0.1:5003
 ```
 
@@ -185,21 +185,21 @@ Then you can find the translation result in `result/` directory, e.g. using Ngin
 
 ### Translators Reference
 
-| Name        | API Key | Offline | Docker | Note                                                  |
-| ----------- | ------- | ------- | ------ | ----------------------------------------------------- |
-| google      |         |         | ✔️      |                                                       |
-| youdao      | ✔️       |         | ✔️      | Requires `YOUDAO_APP_KEY` and `YOUDAO_SECRET_KEY`     |
-| baidu       | ✔️       |         | ✔️      | Requires `BAIDU_APP_ID` and `BAIDU_SECRET_KEY`        |
-| deepl       | ✔️       |         | ✔️      | Requires `DEEPL_AUTH_KEY`                             |
-| papago      |         |         | ✔️      |                                                       |
-| offline     |         | ✔️       | ✔️      | Chooses most suitable offline translator for language |
-| offline_big |         | ✔️       |        |                                                       |
-| nllb        |         | ✔️       | ✔️      |                                                       |
-| nllb_big    |         | ✔️       |        |                                                       |
-| sugoi       |         | ✔️       | ✔️      |                                                       |
-| sugoi_big   |         | ✔️       |        |                                                       |
-| none        |         | ✔️       | ✔️      | Translate to empty texts                              |
-| original    |         | ✔️       | ✔️      | Keep original texts                                   |
+| Name           | API Key | Offline | Docker | Note                                                  |
+| -------------- | ------- | ------- | ------ | ----------------------------------------------------- |
+| google         |         |         | ✔️      |                                                       |
+| youdao         | ✔️       |         | ✔️      | Requires `YOUDAO_APP_KEY` and `YOUDAO_SECRET_KEY`     |
+| baidu          | ✔️       |         | ✔️      | Requires `BAIDU_APP_ID` and `BAIDU_SECRET_KEY`        |
+| deepl          | ✔️       |         | ✔️      | Requires `DEEPL_AUTH_KEY`                             |
+| papago         |         |         | ✔️      |                                                       |
+| offline        |         | ✔️       | ✔️      | Chooses most suitable offline translator for language |
+| sugoi          |         | ✔️       | ✔️      | Sugoi V4.0 Models (recommended for JPN->ENG)          |
+| jparacrawl     |         | ✔️       |        | Supports JPN,ENG                                      |
+| jparacrawl_big |         | ✔️       | ✔️      |                                                       |
+| nllb           |         | ✔️       | ✔️      | Supports every language                               |
+| nllb_big       |         | ✔️       |        |                                                       |
+| none           |         | ✔️       | ✔️      | Translate to empty texts                              |
+| original       |         | ✔️       | ✔️      | Keep original texts                                   |
 
 - API Key: Whether the translator requires an API key to be set as environment variable.
 - Offline: Whether the translator can be used offline.
@@ -207,7 +207,7 @@ Then you can find the translation result in `result/` directory, e.g. using Ngin
 
 ### Language Code Reference
 
-Used by the `--target-lang` argument.
+Used by the `--target-lang` or `-l` argument.
 
 ```yaml
 CHS: Chinese (Simplified)
@@ -248,7 +248,7 @@ It should be noted that this image is fairly large (~ 15GB).
 The web server can be hosted using (For CPU)
 
 ```bash
-docker run -p 5003:5003 -v result:/app/result --ipc=host --rm zyddnys/manga-image-translator:main -l ENG --manga2eng --verbose --log-web --mode web --host=0.0.0.0 --port=5003
+docker run -p 5003:5003 -v result:/app/result --ipc=host --rm zyddnys/manga-image-translator:main -l ENG --manga2eng -v --mode web --host=0.0.0.0 --port=5003
 ```
 
 or
@@ -314,7 +314,7 @@ make run-web-server
 A list of what needs to be done next, you're welcome to contribute.
 
 1. Use diffusion model based inpainting to achieve near perfect result, but this could be much slower.
-2. ~~**IMPORTANT!!!HELP NEEDED!!!** The current text rendering engine is barely usable, we need your help to improve text rendering!~~
+2. **IMPORTANT!!!HELP NEEDED!!!** The current text rendering engine is barely usable, we need your help to improve text rendering!
 3. Text rendering area is determined by detected text lines, not speech bubbles.\
    This works for images without speech bubbles, but making it impossible to decide where to put translated English text. I have no idea how to solve this.
 4. [Ryota et al.](https://arxiv.org/abs/2012.14271) proposed using multimodal machine translation, maybe we can add ViT features for building custom NMT models.
@@ -322,7 +322,10 @@ A list of what needs to be done next, you're welcome to contribute.
    Used for detecting hard subtitles in videos, generting ass file and remove them completetly.
 6. ~~Mask refinement based using non deep learning algorithms, I am currently testing out CRF based algorithm.~~
 7. ~~Angled text region merge is not currently supported~~
-8. Add sugoi models and replace jparacrawl
+8. Make web page only show translators with API key
+9. Compress models in docker image and skim down
+10. Improve textline merge
+11. Create pip dependency
 
 ## Samples
 
