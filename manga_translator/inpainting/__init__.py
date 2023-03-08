@@ -4,11 +4,13 @@ from .common import CommonInpainter, OfflineInpainter
 from .inpainting_aot import AotInpainter
 from .inpainting_lama_mpe import LamaMPEInpainter
 from .none import NoneInpainter
+from .original import OriginalInpainter
 
 INPAINTERS = {
-    'none': NoneInpainter,
     'default': AotInpainter,
     'lama_mpe': LamaMPEInpainter,
+    'none': NoneInpainter,
+    'original': OriginalInpainter,
 }
 inpainter_cache = {}
 

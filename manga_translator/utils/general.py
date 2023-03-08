@@ -3,7 +3,6 @@ from typing import List, Callable, Tuple
 import numpy as np
 import cv2
 import functools
-from abc import ABC
 from shapely.geometry import Polygon, MultiPoint
 from PIL import Image
 import tqdm
@@ -12,7 +11,6 @@ import sys
 import hashlib
 import re
 import einops
-import logging
 
 try:
     functools.cached_property
@@ -62,6 +60,14 @@ class Context(dict):
     def _get_args(self):
         return []
 
+def repeating_sequence(s: str):
+    """Extracts repeating sequence from string. Example: 'abcabca' -> 'abc'."""
+    for i in range(1, len(s) // 2 + 1):
+        seq = s[:i]
+        if seq * (len(s)//len(seq)) + seq[:len(s)%len(seq)] == s:
+            return seq
+    return s
+
 def replace_prefix(s: str, old: str, new: str):
     if s.startswith(old):
         s = new + s[len(old):]
@@ -70,7 +76,7 @@ def replace_prefix(s: str, old: str, new: str):
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+        yield lst[i:i+n]
 
 def get_digest(file_path: str) -> str:
     h = hashlib.sha256()
@@ -186,7 +192,8 @@ def load_image(img: Image.Image):
 
 def dump_image(img: np.ndarray, alpha_ch: Image.Image = None):
     if alpha_ch is not None:
-        img = np.concatenate([img.astype(np.uint8), np.array(alpha_ch).astype(np.uint8)[..., None]], axis = 2)
+        if img.shape[2] != 4 :
+            img = np.concatenate([img.astype(np.uint8), np.array(alpha_ch).astype(np.uint8)[..., None]], axis = 2)
     else:
         img = img.astype(np.uint8)
     return Image.fromarray(img)
@@ -289,11 +296,11 @@ class Quadrilateral(object):
         angle = np.arccos(dot_product) * 180 / np.pi
         return abs(angle - 90) < 10
 
-    @functools.cached_property
+    @property
     def fg_colors(self):
         return self.fg_r, self.fg_g, self.fg_b
 
-    @functools.cached_property
+    @property
     def bg_colors(self):
         return self.bg_r, self.bg_g, self.bg_b
 

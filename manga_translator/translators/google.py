@@ -6,8 +6,10 @@ You can translate text using this module.
 """
 import random
 import typing
+import time
 import json
 import urllib
+import langid
 from typing import List
 
 import httpcore
@@ -127,7 +129,7 @@ class GoogleTranslator(CommonTranslator):
         return json.dumps([[
             [
                 RPC_ID,
-                json.dumps([[text, src, dest, True],[None]], separators=(',', ':')),
+                json.dumps([[text, src, dest, True], [None]], separators=(',', ':')),
                 None,
                 'generic',
             ],
@@ -151,11 +153,20 @@ class GoogleTranslator(CommonTranslator):
             'soc-device': 1,
             'rt': 'c',
         }
-        r = await self.client.post(url, params=params, data=data)
+        encountered_exception = None
+        for _ in range(2):
+            try:
+                r = await self.client.post(url, params=params, data=data)
 
-        if r.status_code != 200 and self.raise_Exception:
-            raise Exception('Unexpected status code "{}" from {}'.format(
-                r.status_code, self.service_urls))
+                if r.status_code != 200 and self.raise_Exception:
+                    raise Exception('Unexpected status code "{}" from {}'.format(
+                        r.status_code, self.service_urls))
+                break
+            except Exception as e:
+                encountered_exception = e
+                time.sleep(0.5)
+        else:
+            raise encountered_exception
 
         return r.text, r
 
@@ -206,21 +217,48 @@ class GoogleTranslator(CommonTranslator):
 
     async def _translate(self, from_lang: str, to_lang: str, queries: List[str]) -> List[str]:
         empty_l = 0
+        empty_r = len(queries)
         for query in queries:
             if query == '':
                 empty_l += 1
             else:
                 break
-        query_text = '\n'.join(queries)
-        result = await self._translate_query(from_lang, to_lang, query_text)
-        if not isinstance(result, list):
-            result = empty_l * [''] + result.text.split('\n')
-            empty_r = len(query_text) - len(result)
-            if empty_r > 0:
-                result = result + empty_r * ['']
+        for query in queries[::-1]:
+            if query == '':
+                empty_r -= 1
+            else:
+                break
+        queries = queries[empty_l:empty_r]
+
+        langs = ['en', 'ja']
+        langid.set_languages(langs)
+        lang_to_queries = {l: [] for l in langs}
+        result = []
+        for i, query in enumerate(queries):
+            detected_lang = langid.classify(query)[0]
+            lang_to_queries[detected_lang].append(query)
+            result.append(detected_lang)
+        langid.set_languages(None)
+
+        lang_to_translation = {}
+        for lang, lang_queries in lang_to_queries.items():
+            if lang_queries:
+                translation = await self._translate_query(from_lang, to_lang, '\n'.join(lang_queries))
+                lang_to_translation[lang] = [] if not translation else translation.text.split('\n')
+
+        for i, lang in enumerate(result):
+            if len(lang_to_translation[lang]) > 0:
+                result[i] = lang_to_translation[lang].pop(0)
+            else: # Server has translated incorrectly
+                result[i] = ''
+
+        result = empty_l * [''] + result + empty_r * ['']
         return [text.strip() for text in result]
 
-    async def _translate_query(self, from_lang: str, to_lang: str, query: str) -> List[str]:
+    async def _translate_query(self, from_lang: str, to_lang: str, query: str) -> Translated:
+        if not query:
+            return None
+
         to_lang = to_lang.lower().split('_', 1)[0]
         from_lang = from_lang.lower().split('_', 1)[0]
 
@@ -266,11 +304,14 @@ class GoogleTranslator(CommonTranslator):
                 break
 
         data = json.loads(resp)
+        if not data[0][2]:
+            return None
         parsed = json.loads(data[0][2])
         # not sure
         # should_spacing = parsed[1][0][0][3]
         should_spacing = True
         translated_parts = []
+        # print(parsed)
         for part in parsed[1][0][0][5]:
             try:
                 translated_parts.append(part[4][1][0])

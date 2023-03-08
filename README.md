@@ -70,9 +70,9 @@ from <https://www.lfd.uci.edu/~gohlke/pythonlibs/#_pydensecrf> according to your
 
 ## Usage
 
-#### Demo mode (singular image)
-
+#### Demo mode (default)
 ```bash
+# saves singular image into /result folder for demonstration purposes
 # `--use-cuda` is optional, if you have a compatible NVIDIA GPU, you can use it.
 # use `--use-cuda-limited` to defer vram expensive language translations to the cpu
 # use `--inpainter=none` to disable inpainting.
@@ -323,9 +323,8 @@ A list of what needs to be done next, you're welcome to contribute.
 6. ~~Mask refinement based using non deep learning algorithms, I am currently testing out CRF based algorithm.~~
 7. ~~Angled text region merge is not currently supported~~
 8. Make web page only show translators with API key
-9. Compress models in docker image and skim down
+9. Create pip repository
 10. Improve textline merge
-11. Create pip dependency
 
 ## Samples
 

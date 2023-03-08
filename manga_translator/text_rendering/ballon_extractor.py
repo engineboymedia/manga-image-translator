@@ -28,16 +28,15 @@ def enlarge_window(rect, im_w, im_h, ratio=2.5, aspect_ratio=1.0) -> List:
     rect[1::2] = np.clip(rect[1::2], 0, im_h - 1)
     return rect.tolist()
 
-def extract_ballon_region(img: np.ndarray, ballon_rect: List, enlarge_ratio=2.0, verbose=False) -> Tuple[np.ndarray, int, List]:
+def extract_ballon_region(img: np.ndarray, ballon_rect: List, enlarge_ratio=1, verbose=False) -> Tuple[np.ndarray, int, List]:
 
-    x1, y1, x2, y2 = ballon_rect[0], ballon_rect[1], \
-        ballon_rect[2] + ballon_rect[0], ballon_rect[3] + ballon_rect[1]
+    x1, y1, x2, y2 = ballon_rect[0], ballon_rect[1], ballon_rect[2] + ballon_rect[0], ballon_rect[3] + ballon_rect[1]
     if enlarge_ratio > 1:
         x1, y1, x2, y2 = enlarge_window([x1, y1, x2, y2], img.shape[1], img.shape[0], enlarge_ratio, aspect_ratio=ballon_rect[3] / ballon_rect[2])
 
     img = img[y1:y2, x1:x2].copy()
 
-    kernel = np.ones((3,3),np.uint8)
+    kernel = np.ones((3,3), np.uint8)
     orih, oriw = img.shape[0], img.shape[1]
     scaleR = 1
     if orih > 300 and oriw > 300:
@@ -52,7 +51,7 @@ def extract_ballon_region(img: np.ndarray, ballon_rect: List, enlarge_ratio=2.0,
     h, w = img.shape[0], img.shape[1]
     img_area = h * w
 
-    cpimg = cv2.GaussianBlur(img,(3,3),cv2.BORDER_DEFAULT)
+    cpimg = cv2.GaussianBlur(img, (3,3), cv2.BORDER_DEFAULT)
     detected_edges = cv2.Canny(cpimg, 70, 140, L2gradient=True, apertureSize=3)
     cv2.rectangle(detected_edges, (0, 0), (w-1, h-1), WHITE, 1, cv2.LINE_8)
     cons, hiers = cv2.findContours(detected_edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
@@ -101,4 +100,4 @@ def extract_ballon_region(img: np.ndarray, ballon_rect: List, enlarge_ratio=2.0,
         cv2.imshow('img', img)
         cv2.waitKey(0)
 
-    return ballon_mask, (ballon_mask > 0).sum(), [x1, y1, x2, y2]
+    return ballon_mask, [x1, y1, x2, y2]

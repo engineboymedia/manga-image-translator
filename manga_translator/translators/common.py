@@ -1,9 +1,8 @@
-import os
 import re
 from typing import List, Tuple
 from abc import abstractmethod
 
-from ..utils import InfererModule, ModelWrapper
+from ..utils import InfererModule, ModelWrapper, repeating_sequence
 
 try:
     import readline
@@ -11,6 +10,9 @@ except Exception:
     readline = None
 
 class InvalidServerResponse(Exception):
+    pass
+
+class MissingAPIKeyException(Exception):
     pass
 
 class LanguageUnsupportedException(Exception):
@@ -27,7 +29,7 @@ class MTPEAdapter():
             print('MTPE is currently only supported on linux')
             return translations
         new_translations = []
-        print(' -- Running Machine Translation Post Editing (MTPE)')
+        print('Running Machine Translation Post Editing (MTPE)')
         for i, (query, translation) in enumerate(zip(queries, translations)):
             print(f'\n[{i + 1}/{len(queries)}] {query}:')
             readline.set_startup_hook(lambda: readline.insert_text(translation.replace('\n', '\\n')))
@@ -77,7 +79,6 @@ class CommonTranslator(InfererModule):
             result = []
         else:
             result = await self._translate(*self.parse_language_codes(from_lang, to_lang, fatal=True), queries)
-        result = [self._clean_translation_output(r) for r in result]
 
         translated_sentences = []
         if len(result) < len(queries):
@@ -87,6 +88,8 @@ class CommonTranslator(InfererModule):
             translated_sentences.extend(result[:len(queries)])
         else:
             translated_sentences.extend(result)
+
+        translated_sentences = [self._clean_translation_output(q, r) for q, r in zip(queries, translated_sentences)]
         if use_mtpe:
             translated_sentences = await self.mtpe_adapter.dispatch(queries, translated_sentences)
         return translated_sentences
@@ -95,14 +98,29 @@ class CommonTranslator(InfererModule):
     async def _translate(self, from_lang: str, to_lang: str, queries: List[str]) -> List[str]:
         pass
 
-    def _clean_translation_output(self, text: str) -> str:
+    def _clean_translation_output(self, query: str, trans: str) -> str:
         '''
         Tries to spot and skim down invalid translations.
         '''
+        if not query or not trans:
+            return ''
+
         # '  ' -> ' '
-        text = re.sub(r'\s+', r' ', text)
-        # ' .' -> '.'
-        text = re.sub(r'\s+([.,;])', r'\1', text)
+        trans = re.sub(r'\s+', r' ', trans)
+        # 'text .' -> 'text.'
+        trans = re.sub(r'\s+([.,;])', r'\1', trans)
+
+        seq = repeating_sequence(trans.lower())
+
+        # 'aaaaaaaaaaaaa' -> 'aaaaaa'
+        if len(query) < 0.6 * len(trans) and len(seq) < 0.5 * len(trans):
+            # Extend sequence to length of original query
+            trans = seq * max(len(query) // len(seq), 1)
+            # Transfer capitalization of query to translation
+            nTrans = ''
+            for i in range(min(len(trans), len(query))):
+                nTrans += trans[i].upper() if query[i].isupper() else trans[i]
+            trans = nTrans
 
         # words = text.split()
         # elements = list(set(words))
@@ -115,10 +133,10 @@ class CommonTranslator(InfererModule):
         #         el = re.escape(el)
         #         text = re.sub(r'(?: ' + el + r'){4} (' + el + r' )+', ' ', text)
 
-        return text
+        return trans
 
 class OfflineTranslator(CommonTranslator, ModelWrapper):
-    _MODEL_DIR = os.path.join(ModelWrapper._MODEL_DIR, 'translators')
+    _MODEL_SUB_DIR = 'translators'
 
     async def _translate(self, *args, **kwargs):
         return await self.forward(*args, **kwargs)

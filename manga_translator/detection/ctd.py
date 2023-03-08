@@ -10,9 +10,9 @@ from .ctd_utils.basemodel import TextDetBase, TextDetBaseDNN
 from .ctd_utils.utils.yolov5_utils import non_max_suppression
 from .ctd_utils.utils.db_utils import SegDetectorRepresenter
 from .ctd_utils.utils.imgproc_utils import letterbox
-from .ctd_utils.textmask import refine_mask, refine_undetected_mask, REFINEMASK_INPAINT
+# from .ctd_utils.textmask import REFINEMASK_INPAINT
 from .common import OfflineDetector
-from ..utils import TextBlock, group_output, det_rearrange_forward
+from ..utils import TextBlock, Quadrilateral, det_rearrange_forward
 
 def preprocess_img(img, input_size=(1024, 1024), device='cpu', bgr2rgb=True, half=False, to_tensor=True):
     if bgr2rgb:
@@ -74,7 +74,7 @@ class ComicTextDetector(OfflineDetector):
     }
 
     def __init__(self, *args, **kwargs):
-        os.makedirs(self._MODEL_DIR, exist_ok=True)
+        os.makedirs(self.model_dir, exist_ok=True)
         if os.path.exists('comictextdetector.pt'):
             shutil.move('comictextdetector.pt', self._get_file_path('comictextdetector.pt'))
         if os.path.exists('comictextdetector.pt.onnx'):
@@ -130,25 +130,25 @@ class ComicTextDetector(OfflineDetector):
     async def _forward(self, image: np.ndarray, detect_size: int, text_threshold: float, box_threshold: float,
                        unclip_ratio: float, det_rearrange_max_batches: int, verbose: bool = False) -> Tuple[List[TextBlock], np.ndarray]:
 
-        keep_undetected_mask = False
-        refine_mode = REFINEMASK_INPAINT
+        # keep_undetected_mask = False
+        # refine_mode = REFINEMASK_INPAINT
 
         im_h, im_w = image.shape[:2]
         lines_map, mask = det_rearrange_forward(image, self.det_batch_forward_ctd, self.input_size[0], det_rearrange_max_batches, self.device, verbose)
-        blks = []
-        resize_ratio = [1, 1]
+        # blks = []
+        # resize_ratio = [1, 1]
         if lines_map is None:
             img_in, ratio, dw, dh = preprocess_img(image, input_size=self.input_size, device=self.device, half=self.half, to_tensor=self.backend=='torch')
             blks, mask, lines_map = self.model(img_in)
 
             if self.backend == 'opencv':
-                if mask.shape[1] == 2:     # some version of opencv spit out reversed result
+                if mask.shape[1] == 2: # some version of opencv spit out reversed result
                     tmp = mask
                     mask = lines_map
                     lines_map = tmp
             mask = mask.squeeze()
-            resize_ratio = (im_w / (self.input_size[0] - dw), im_h / (self.input_size[1] - dh))
-            blks = postprocess_yolo(blks, self.conf_thresh, self.nms_thresh, resize_ratio)
+            # resize_ratio = (im_w / (self.input_size[0] - dw), im_h / (self.input_size[1] - dh))
+            # blks = postprocess_yolo(blks, self.conf_thresh, self.nms_thresh, resize_ratio)
             mask = mask[..., :mask.shape[0]-dh, :mask.shape[1]-dw]
             lines_map = lines_map[..., :lines_map.shape[2]-dh, :lines_map.shape[3]-dw]
 
@@ -161,13 +161,26 @@ class ComicTextDetector(OfflineDetector):
         # map output to input img
         mask = cv2.resize(mask, (im_w, im_h), interpolation=cv2.INTER_LINEAR)
 
-        if lines.size == 0:
-            lines = []
-        else:
-            lines = lines.astype(np.int32)
-        blk_list = group_output(blks, lines, im_w, im_h, mask)
-        mask_refined = refine_mask(image, mask, blk_list, refine_mode=refine_mode)
-        if keep_undetected_mask:
-            mask_refined = refine_undetected_mask(image, mask, mask_refined, blk_list, refine_mode=refine_mode)
+        # if lines.size == 0:
+        #     lines = []
+        # else:
+        #     lines = lines.astype(np.int32)
 
-        return blk_list, mask, mask_refined
+        # YOLO was used for finding bboxes which to order the lines into. This is now solved
+        # through the textline merger, which seems to work more reliably.
+        # The YOLO language detection seems unnecessary as it could never be as good as
+        # using the OCR extracted string directly.
+        # Doing it for increasing the textline merge accuracy doesn't really work either,
+        # as the merge could be postponed until after the OCR finishes.
+
+        textlines = [Quadrilateral(pts.astype(int), '', score) for pts, score in zip(lines, scores)]
+        text_regions = await self._merge_textlines(textlines, image.shape[1], image.shape[0], verbose=verbose)
+
+        return text_regions, mask, None
+
+        # blk_list = group_output(blks, lines, im_w, im_h, mask)
+        # mask_refined = refine_mask(image, mask, blk_list, refine_mode=refine_mode)
+        # if keep_undetected_mask:
+        #     mask_refined = refine_undetected_mask(image, mask, mask_refined, blk_list, refine_mode=refine_mode)
+
+        # return blk_list, mask, mask_refined
